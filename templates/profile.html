@@ -1,0 +1,205 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="profile-header text-center">
+    <div class="profile-avatar">
+        <i class="fas {% if current_user.role == 'mentor' %}fa-user-tie{% else %}fa-user-graduate{% endif %}"></i>
+    </div>
+    <h2>{{ current_user.username }}</h2>
+    <p class="text-primary mb-0">
+        <i class="fas {% if current_user.role == 'mentor' %}fa-chalkboard-teacher{% else %}fa-user{% endif %} me-1"></i>
+        {{ current_user.role|capitalize }}
+    </p>
+    {% if current_user.expertise %}
+        <p class="text-success mt-2">
+            <i class="fas fa-tag me-1"></i> {{ current_user.expertise }}
+        </p>
+    {% endif %}
+</div>
+
+<div class="row">
+    <!-- Profile Form -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header">
+                <h3 class="card-title h5 mb-0">Profile Information</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('profile') }}">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ form.username.label(class="form-label") }}
+                        {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else "")) }}
+                        {% if form.username.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.username.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.email.label(class="form-label") }}
+                        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
+                        {% if form.email.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.email.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.bio.label(class="form-label") }}
+                        {{ form.bio(class="form-control" + (" is-invalid" if form.bio.errors else ""), rows=4, placeholder="Tell others about yourself...") }}
+                        {% if form.bio.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.bio.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">
+                            <small>This bio will be visible to other users on the platform.</small>
+                        </div>
+                    </div>
+                    {% if current_user.role == 'mentor' %}
+                        <div class="mb-3">
+                            {{ form.expertise.label(class="form-label") }}
+                            {{ form.expertise(class="form-control" + (" is-invalid" if form.expertise.errors else ""), placeholder="e.g. Python, Web Development, Data Science") }}
+                            {% if form.expertise.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.expertise.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                <small>List your areas of expertise to help mentees find you.</small>
+                            </div>
+                        </div>
+                    {% endif %}
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Availability Management (for mentors only) -->
+    {% if current_user.role == 'mentor' %}
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title h5 mb-0">Availability</h3>
+                    <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#newAvailabilityForm" aria-expanded="false" aria-controls="newAvailabilityForm">
+                        <i class="fas fa-plus me-1"></i> Add New
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="collapse mb-4" id="newAvailabilityForm">
+                        <div class="card card-body border-0 bg-light">
+                            <h4 class="h6 mb-3">Add New Availability</h4>
+                            <form method="POST" action="{{ url_for('add_availability') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        {{ availability_form.day_of_week.label(class="form-label") }}
+                                        {{ availability_form.day_of_week(class="form-select" + (" is-invalid" if availability_form.day_of_week.errors else "")) }}
+                                        {% if availability_form.day_of_week.errors %}
+                                            <div class="invalid-feedback">
+                                                {% for error in availability_form.day_of_week.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ availability_form.is_recurring.label(class="form-check-label") }}
+                                        <div class="form-check">
+                                            {{ availability_form.is_recurring(class="form-check-input") }}
+                                            <div class="form-text">
+                                                <small>Repeats weekly at the same time</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        {{ availability_form.start_time.label(class="form-label") }}
+                                        <input type="time" name="start_time" id="start_time" class="form-control{{ ' is-invalid' if availability_form.start_time.errors else '' }}" required>
+                                        {% if availability_form.start_time.errors %}
+                                            <div class="invalid-feedback">
+                                                {% for error in availability_form.start_time.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ availability_form.end_time.label(class="form-label") }}
+                                        <input type="time" name="end_time" id="end_time" class="form-control{{ ' is-invalid' if availability_form.end_time.errors else '' }}" required>
+                                        {% if availability_form.end_time.errors %}
+                                            <div class="invalid-feedback">
+                                                {% for error in availability_form.end_time.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#newAvailabilityForm">Cancel</button>
+                                    <button type="submit" class="btn btn-success" id="submit-availability">
+                                        <i class="fas fa-plus me-1"></i> Add Availability
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    {% if availability_slots %}
+                        <h4 class="h6 mb-3">Current Availability Slots</h4>
+                        <div class="list-group">
+                            {% for slot in availability_slots %}
+                                <div class="list-group-item availability-slot">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>
+                                                {% set days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                                                {{ days[slot.day_of_week] }}
+                                            </strong>
+                                            <p class="mb-0">
+                                                {{ slot.start_time.strftime('%I:%M %p') }} - {{ slot.end_time.strftime('%I:%M %p') }}
+                                                {% if slot.is_recurring %}
+                                                    <span class="badge bg-info ms-2">Recurring</span>
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                        <form method="POST" action="{{ url_for('delete_availability', slot_id=slot.id) }}" onsubmit="return confirm('Are you sure you want to delete this availability slot?');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            You haven't set any availability slots yet. Add some to let mentees book sessions with you.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+{% endblock %}

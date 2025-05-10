@@ -1,0 +1,107 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Book a Session with {{ mentor.username }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('request_session') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        {{ form.mentor_id() }}
+                        {{ form.slot_id() }}
+                        
+                        <div class="mb-4">
+                            <h5>Mentor Information</h5>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="rounded-circle bg-primary bg-opacity-10 me-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                    <i class="fas fa-user-tie fa-2x text-primary"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">{{ mentor.username }}</h5>
+                                    {% if mentor.expertise %}
+                                        <p class="mb-0 text-muted">
+                                            <i class="fas fa-tag me-1"></i> {{ mentor.expertise }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            {% if mentor.bio %}
+                                <p class="mb-3">{{ mentor.bio }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5>Selected Time Slot</h5>
+                            <div class="alert alert-info">
+                                <i class="far fa-calendar-alt me-2"></i>
+                                <strong>{{ ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][slot.day_of_week] }}</strong>:
+                                {{ slot.start_time.strftime('%I:%M %p') }} - {{ slot.end_time.strftime('%I:%M %p') }}
+                                {% if slot.is_recurring %}
+                                    <span class="badge bg-primary ms-1">Recurring</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="session_date" class="form-label">Select a Date</label>
+                            {{ form.session_date(class="form-control", type="date", min=now.strftime('%Y-%m-%d'), id="session_date", required="required") }}
+                            <div class="form-text">
+                                <small>Please select a date that matches the day of the week ({{ ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][slot.day_of_week] }}).</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="notes" class="form-label">Notes for Mentor</label>
+                            {{ form.notes(class="form-control", rows=3, placeholder="Let the mentor know what you'd like to discuss...", id="notes") }}
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-calendar-check me-1"></i> Confirm Booking
+                            </button>
+                            <a href="{{ url_for('mentors') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Mentors
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set default date based on the selected day of week
+        const dayOfWeek = {{ slot.day_of_week }};
+        const today = new Date();
+        const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        
+        // Convert from our day format (0=Monday) to JS day format (0=Sunday)
+        const adjustedDayIndex = dayOfWeek === 6 ? 0 : dayOfWeek + 1;
+        
+        // Calculate days to add to get to the next occurrence of the selected day
+        let daysToAdd = adjustedDayIndex - currentDay;
+        if (daysToAdd <= 0) {
+            daysToAdd += 7; // Go to next week if the day has passed
+        }
+        
+        // Create the suggested date
+        const suggestedDate = new Date(today);
+        suggestedDate.setDate(today.getDate() + daysToAdd);
+        
+        // Format the date to YYYY-MM-DD
+        const formattedDate = suggestedDate.toISOString().split('T')[0];
+        
+        // Set the date input value
+        document.getElementById('session_date').value = formattedDate;
+    });
+</script>
+{% endblock %}

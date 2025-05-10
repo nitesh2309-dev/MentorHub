@@ -1,0 +1,152 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
+                    <h2 class="card-title h3">Create Your Account</h2>
+                    <p class="card-text text-muted">Join the MentorHub community today</p>
+                </div>
+                
+                <form method="POST" action="{{ url_for('register') }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ form.username.label(class="form-label") }}
+                        {% if form.username.errors %}
+                            {{ form.username(class="form-control is-invalid", placeholder="Choose a username") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.username.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.username(class="form-control", placeholder="Choose a username") }}
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.email.label(class="form-label") }}
+                        {% if form.email.errors %}
+                            {{ form.email(class="form-control is-invalid", placeholder="Enter your email address") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.email.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.email(class="form-control", placeholder="Enter your email address") }}
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.password.label(class="form-label") }}
+                            {% if form.password.errors %}
+                                {{ form.password(class="form-control is-invalid", placeholder="Create a password") }}
+                                <div class="invalid-feedback">
+                                    {% for error in form.password.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.password(class="form-control", placeholder="Create a password") }}
+                                <div class="form-text">
+                                    <small>Must be at least 8 characters long</small>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            {{ form.password2.label(class="form-label") }}
+                            {% if form.password2.errors %}
+                                {{ form.password2(class="form-control is-invalid", placeholder="Confirm your password") }}
+                                <div class="invalid-feedback">
+                                    {% for error in form.password2.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.password2(class="form-control", placeholder="Confirm your password") }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        {{ form.role.label(class="form-label") }}
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="form-check card p-3 text-center h-100">
+                                    <input class="form-check-input" type="radio" name="role" id="role-mentee" value="mentee" {% if form.role.data == 'mentee' %}checked{% endif %} required>
+                                    <label class="form-check-label d-block h-100" for="role-mentee">
+                                        <div class="rounded-circle bg-success bg-opacity-10 mx-auto mb-2 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                            <i class="fas fa-user-graduate text-success"></i>
+                                        </div>
+                                        <h5 class="h6 mb-1">Mentee</h5>
+                                        <p class="mb-0 small text-secondary">Looking for guidance</p>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-check card p-3 text-center h-100">
+                                    <input class="form-check-input" type="radio" name="role" id="role-mentor" value="mentor" {% if form.role.data == 'mentor' %}checked{% endif %} required>
+                                    <label class="form-check-label d-block h-100" for="role-mentor">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 mx-auto mb-2 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                            <i class="fas fa-user-tie text-primary"></i>
+                                        </div>
+                                        <h5 class="h6 mb-1">Mentor</h5>
+                                        <p class="mb-0 small text-secondary">Offering expertise</p>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        {% if form.role.errors %}
+                            <div class="text-danger mt-2">
+                                {% for error in form.role.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        {{ form.submit(class="btn btn-primary btn-lg") }}
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer bg-light p-4 text-center">
+                <p class="mb-0">Already have an account? <a href="{{ url_for('login') }}">Sign in here</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Enhance radio button selection UI
+        const roleCards = document.querySelectorAll('.form-check.card');
+        
+        roleCards.forEach(card => {
+            const radio = card.querySelector('input[type="radio"]');
+            
+            // Initially style cards based on checked state
+            if (radio.checked) {
+                card.classList.add('border-primary');
+            }
+            
+            // Add click handler for entire card
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.form-check.card').forEach(c => {
+                    c.classList.remove('border-primary');
+                });
+                
+                radio.checked = true;
+                card.classList.add('border-primary');
+            });
+        });
+    });
+</script>
+{% endblock %}

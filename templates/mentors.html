@@ -1,0 +1,504 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<h1 class="mb-4">Find Mentors</h1>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Filters</h5>
+                <form id="mentorFilterForm">
+                    <div class="mb-3">
+                        <label for="searchInput" class="form-label">Search</label>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search by name or expertise">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label d-block">Availability</label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" value="Monday" id="monday">
+                            <label class="form-check-label" for="monday">Mon</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" value="Tuesday" id="tuesday">
+                            <label class="form-check-label" for="tuesday">Tue</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" value="Wednesday" id="wednesday">
+                            <label class="form-check-label" for="wednesday">Wed</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" value="Thursday" id="thursday">
+                            <label class="form-check-label" for="thursday">Thu</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" value="Friday" id="friday">
+                            <label class="form-check-label" for="friday">Fri</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" value="Saturday" id="saturday">
+                            <label class="form-check-label" for="saturday">Sat</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" value="Sunday" id="sunday">
+                            <label class="form-check-label" for="sunday">Sun</label>
+                        </div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="reset" class="btn btn-outline-secondary">Clear Filters</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="alert alert-info mb-4">
+            <i class="fas fa-info-circle me-2"></i>
+            <span id="mentorCount">{{ mentors|length }} mentors available</span>. Click on a mentor to view their details and book a session.
+        </div>
+
+        {% if mentors %}
+            <div class="row row-cols-1 row-cols-md-2 g-4" id="mentorsList">
+                {% for mentor in mentors %}
+                    <div class="col mentor-card-wrapper" data-expertise="{{ mentor.expertise|default('') }}" data-availability="{% for slot in mentor.slots %}{{ slot.day_of_week }} {% endfor %}">
+                        <div class="card mentor-card shadow-sm border-0 h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="rounded-circle bg-primary bg-opacity-10 me-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                        <i class="fas fa-user-tie fa-2x text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-0">{{ mentor.username }}</h5>
+                                        {% if mentor.expertise %}
+                                            <p class="mentor-expertise mb-0">
+                                                <i class="fas fa-tag me-1"></i> {{ mentor.expertise }}
+                                            </p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                {% if mentor.bio %}
+                                    <p class="mentor-bio mb-3">{{ mentor.bio|truncate(100) }}</p>
+                                {% else %}
+                                    <p class="text-muted mb-3 small"><em>No bio provided</em></p>
+                                {% endif %}
+
+                                <h6 class="mb-2">Available Times:</h6>
+                                {% if mentor.slots %}
+                                    <ul class="list-unstyled mb-3 small">
+                                        {% set days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                                        {% for slot in mentor.slots %}
+                                            <li class="mb-1" data-slot-id="{{ slot.id }}">
+                                                <i class="far fa-calendar-alt me-1 text-success"></i>
+                                                <strong>{{ days[slot.day_of_week] }}</strong>:
+                                                {{ slot.start_time.strftime('%I:%M %p') }} - {{ slot.end_time.strftime('%I:%M %p') }}
+                                                {% if slot.is_recurring %}
+                                                    <span class="badge bg-info ms-1">Recurring</span>
+                                                {% endif %}
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-muted small">No availability set</p>
+                                {% endif %}
+
+                                {% if mentor.slots %}
+                                    <div class="d-grid">
+                                        <button type="button" class="btn btn-primary book-session-btn" data-mentor-id="{{ mentor.id }}" data-mentor-name="{{ mentor.username }}">
+                                            <i class="fas fa-calendar-plus me-1"></i> Book a Session
+                                        </button>
+                                        <!-- Direct link fallback for environments where JavaScript doesn't work -->
+                                        <noscript>
+                                            <div class="mt-2">
+                                                <a href="{{ url_for('request_session') }}?mentor_id={{ mentor.id }}&slot_id={{ mentor.slots[0].id if mentor.slots }}" class="btn btn-outline-primary w-100">
+                                                    Book Without JavaScript
+                                                </a>
+                                            </div>
+                                        </noscript>
+                                    </div>
+                                {% else %}
+                                    <div class="d-grid">
+                                        <button type="button" class="btn btn-secondary" disabled>
+                                            <i class="fas fa-calendar-times me-1"></i> No Availability
+                                        </button>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                No mentors available at the moment. Please check back later.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Book Session Modal -->
+<div class="modal fade" id="bookSessionModal" tabindex="-1" aria-labelledby="bookSessionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bookSessionModalLabel">Book a Session</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="sessionRequestForm" method="POST" action="{{ url_for('request_session') }}">
+                <!-- CSRF Token -->
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <!-- Hidden Fields -->
+                {{ form.mentor_id(id="modal_mentor_id") }}
+                {{ form.slot_id(id="modal_slot_id") }}
+
+                <div class="modal-body">
+                    <!-- Mentor Name Display -->
+                    <div class="mb-3">
+                        <label for="modal_mentor_name" class="form-label">Mentor</label>
+                        <input type="text" class="form-control" id="modal_mentor_name" readonly>
+                    </div>
+
+                    <!-- Time Slot Selection -->
+                    <div class="mb-3">
+                        <label for="slot-select" class="form-label">Available Time Slots</label>
+                        <select class="form-select" id="slot-select" required>
+                            <option value="" selected disabled>Select a time slot</option>
+                        </select>
+                        <div class="form-text">
+                            <small>Choose a time slot from the mentor's availability.</small>
+                        </div>
+                    </div>
+
+                    <!-- Date Selection -->
+                    <div class="mb-3">
+                        <label for="session_date" class="form-label">Date</label>
+                        {{ form.session_date(class="form-control", type="date", min=now.strftime('%Y-%m-%d'), id="session_date", required="required") }}
+                        <div class="form-text">
+                            <small>Select an upcoming date that matches the chosen day of the week.</small>
+                        </div>
+                    </div>
+
+                    <!-- Notes for Mentor -->
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes for Mentor</label>
+                        {{ form.notes(class="form-control", rows=3, placeholder="Let the mentor know what you'd like to discuss...") }}
+                    </div>
+                </div>
+
+                <!-- Modal Footer with Buttons -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="document.getElementById('bookSessionModal').classList.remove('show'); document.getElementById('bookSessionModal').style.display = 'none';">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="submit-booking-btn">Book Session</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Fallback Form for Environments Where Modal Doesn't Work -->
+<div id="fallbackBookingForm" style="display: none;">
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">Book a Session</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('request_session') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="mentor_id" id="fallback_mentor_id">
+                <input type="hidden" name="slot_id" id="fallback_slot_id">
+
+                <div class="mb-3">
+                    <label class="form-label">Mentor</label>
+                    <input type="text" class="form-control" id="fallback_mentor_name" readonly>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Date</label>
+                    <input type="date" name="session_date" class="form-control" required min="{{ now.strftime('%Y-%m-%d') }}">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Notes</label>
+                    <textarea name="notes" class="form-control" rows="3" placeholder="Let the mentor know what you'd like to discuss..."></textarea>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">Book Session</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mentor filtering logic
+    const searchInput = document.getElementById('searchInput');
+    const dayCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+    const mentorCards = document.querySelectorAll('.mentor-card-wrapper');
+    const mentorCountElement = document.getElementById('mentorCount');
+
+    function filterMentors() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedDays = Array.from(dayCheckboxes)
+            .filter(checkbox => checkbox.checked)
+            .map(checkbox => checkbox.value);
+
+        let visibleCount = 0;
+
+        mentorCards.forEach(card => {
+            const mentorName = card.querySelector('.card-title').textContent.toLowerCase();
+            const expertise = card.getAttribute('data-expertise').toLowerCase();
+            const availability = card.getAttribute('data-availability');
+
+            // Search filter
+            const matchesSearch = searchTerm === '' ||
+                                 mentorName.includes(searchTerm) ||
+                                 expertise.includes(searchTerm);
+
+            // Day filter
+            const matchesDay = selectedDays.length === 0 ||
+                              selectedDays.some(day => {
+                                  const dayIndex = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].indexOf(day);
+                                  return availability.includes(dayIndex.toString());
+                              });
+
+            if (matchesSearch && matchesDay) {
+                card.style.display = '';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        mentorCountElement.textContent = `${visibleCount} mentors available`;
+    }
+
+    searchInput.addEventListener('input', filterMentors);
+    dayCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', filterMentors);
+    });
+
+    document.getElementById('mentorFilterForm').addEventListener('reset', function() {
+        // Wait for the form to reset before filtering
+        setTimeout(filterMentors, 0);
+    });
+
+    // Session booking logic
+    const modal = document.getElementById('bookSessionModal');
+    const modalMentorId = document.getElementById('modal_mentor_id');
+    const modalMentorName = document.getElementById('modal_mentor_name');
+    const slotSelect = document.getElementById('slot-select');
+    const modalSlotId = document.getElementById('modal_slot_id');
+    const sessionDateInput = document.getElementById('session_date');
+
+    // Initialize the Bootstrap modal
+    let bookModal;
+    try {
+        bookModal = new bootstrap.Modal(modal);
+    } catch (error) {
+        console.error('Error initializing modal:', error);
+        // Fallback for older Bootstrap versions or if bootstrap is not fully loaded
+        bookModal = {
+            show: function() {
+                modal.classList.add('show');
+                modal.style.display = 'block';
+                document.body.classList.add('modal-open');
+                const backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                document.body.appendChild(backdrop);
+            }
+        };
+    }
+
+    // Function to handle booking button click
+    function handleBookButtonClick(event) {
+        const button = event.currentTarget;
+        const mentorId = button.getAttribute('data-mentor-id');
+        const mentorName = button.getAttribute('data-mentor-name');
+
+        console.log('Book button clicked for mentor:', mentorName, 'ID:', mentorId);
+
+        // Set the mentor info in the modal
+        if (modalMentorId) modalMentorId.value = mentorId;
+        if (modalMentorName) modalMentorName.value = mentorName;
+
+        // Clear the slot select
+        if (slotSelect) slotSelect.innerHTML = '<option value="" selected disabled>Select a time slot</option>';
+
+        // Get all slots for this mentor
+        const mentorCard = button.closest('.mentor-card-wrapper');
+        if (!mentorCard) {
+            console.error('Could not find mentor card wrapper');
+            return;
+        }
+
+        const slotElements = mentorCard.querySelectorAll('ul li');
+        console.log('Found', slotElements.length, 'slot elements');
+
+        // Add each slot to the select
+        slotElements.forEach((slotElement) => {
+            const slotText = slotElement.textContent.trim();
+            const slotId = slotElement.getAttribute('data-slot-id');
+            console.log('Adding slot:', slotText, 'ID:', slotId);
+
+            const optionEl = document.createElement('option');
+            optionEl.value = slotId; // Use the actual slot ID from the database
+            optionEl.textContent = slotText;
+            optionEl.setAttribute('data-day', slotText.split(':')[0].trim());
+            if (slotSelect) slotSelect.appendChild(optionEl);
+        });
+
+        // Show the modal
+        try {
+            bookModal.show();
+            console.log('Modal shown successfully');
+        } catch (error) {
+            console.error('Error showing modal:', error);
+            // Fallback - use the fallback form if modal fails
+            const fallbackForm = document.getElementById('fallbackBookingForm');
+            if (fallbackForm) {
+                // Show the fallback form
+                fallbackForm.style.display = 'block';
+
+                // Scroll to the fallback form
+                fallbackForm.scrollIntoView({ behavior: 'smooth' });
+
+                // Set the mentor info in the fallback form
+                const fallbackMentorId = document.getElementById('fallback_mentor_id');
+                const fallbackMentorName = document.getElementById('fallback_mentor_name');
+
+                if (fallbackMentorId) fallbackMentorId.value = mentorId;
+                if (fallbackMentorName) fallbackMentorName.value = mentorName;
+
+                // Get the first available slot ID
+                const mentorCard = button.closest('.mentor-card-wrapper');
+                if (mentorCard) {
+                    const firstSlot = mentorCard.querySelector('ul li');
+                    if (firstSlot) {
+                        const slotId = firstSlot.getAttribute('data-slot-id');
+                        const fallbackSlotId = document.getElementById('fallback_slot_id');
+                        if (fallbackSlotId && slotId) fallbackSlotId.value = slotId;
+                    }
+                }
+            } else {
+                // Last resort - direct to the mentors page with the mentor ID
+                if (confirm('Would you like to book a session with ' + mentorName + '?')) {
+                    window.location.href = '/mentors?mentor_id=' + mentorId;
+                }
+            }
+        }
+    }
+
+    // Set up the modal for booking - using event delegation for better compatibility
+    document.addEventListener('click', function(event) {
+        if (event.target.classList.contains('book-session-btn') ||
+            event.target.closest('.book-session-btn')) {
+
+            const button = event.target.classList.contains('book-session-btn') ?
+                          event.target :
+                          event.target.closest('.book-session-btn');
+
+            handleBookButtonClick({currentTarget: button});
+        }
+    });
+
+    // Handle slot selection
+    if (slotSelect) {
+        slotSelect.addEventListener('change', function() {
+            try {
+                if (!this.selectedIndex || this.selectedIndex < 0) {
+                    console.error('No option selected');
+                    return;
+                }
+
+                const selectedOption = this.options[this.selectedIndex];
+                if (!selectedOption) {
+                    console.error('Selected option not found');
+                    return;
+                }
+
+                const day = selectedOption.getAttribute('data-day');
+                console.log('Selected day:', day);
+
+                // Set the slot ID - now using the actual slot ID
+                if (modalSlotId) modalSlotId.value = selectedOption.value;
+
+                // Set the min date to today
+                const today = new Date();
+                const formattedToday = today.toISOString().split('T')[0];
+                if (sessionDateInput) sessionDateInput.min = formattedToday;
+
+                // Suggest a date based on the selected day
+                if (day) {
+                    const dayIndex = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].indexOf(day);
+                    console.log('Day index:', dayIndex);
+
+                    if (dayIndex >= 0) {
+                        const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+                        const adjustedDayIndex = dayIndex === 6 ? 0 : dayIndex + 1; // Convert to JS day format (0=Sun, 1=Mon)
+
+                        let daysToAdd = adjustedDayIndex - currentDay;
+                        if (daysToAdd <= 0) {
+                            daysToAdd += 7; // Go to next week if the day has passed
+                        }
+
+                        console.log('Days to add:', daysToAdd);
+
+                        const suggestedDate = new Date(today);
+                        suggestedDate.setDate(today.getDate() + daysToAdd);
+
+                        // Format the date to YYYY-MM-DD
+                        const formattedDate = suggestedDate.toISOString().split('T')[0];
+                        console.log('Suggested date:', formattedDate);
+
+                        if (sessionDateInput) sessionDateInput.value = formattedDate;
+                    }
+                }
+            } catch (error) {
+                console.error('Error handling slot selection:', error);
+            }
+        });
+    } else {
+        console.error('Slot select element not found');
+    }
+
+    // Add a submit handler to the form to ensure all required fields are filled
+    const sessionRequestForm = document.getElementById('sessionRequestForm');
+    if (sessionRequestForm) {
+        sessionRequestForm.addEventListener('submit', function(event) {
+            try {
+                // Check if slot ID is set
+                const slotIdField = document.getElementById('modal_slot_id');
+                if (!slotIdField || !slotIdField.value) {
+                    event.preventDefault();
+                    alert('Please select a time slot');
+                    return false;
+                }
+
+                // Check if date is set
+                const dateField = document.getElementById('session_date');
+                if (!dateField || !dateField.value) {
+                    event.preventDefault();
+                    alert('Please select a date');
+                    return false;
+                }
+
+                console.log('Form submission validated successfully');
+                return true;
+            } catch (error) {
+                console.error('Error validating form submission:', error);
+                // Allow the form to submit anyway to avoid blocking the user
+                return true;
+            }
+        });
+    } else {
+        console.error('Session request form not found');
+    }
+});
+</script>
+{% endblock %}

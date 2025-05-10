@@ -1,0 +1,171 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row align-items-center">
+        <div class="col-lg-6 mb-5 mb-lg-0">
+            <h1 class="display-4 fw-bold mb-4">Connect with Mentors in Your Field</h1>
+            <p class="lead mb-4">MentorHub makes it easy to find mentors, schedule sessions, and track your progress. Whether you're looking to grow in your career or share your expertise, our platform simplifies the mentoring process.</p>
+            
+            {% if not current_user.is_authenticated %}
+                <div class="d-grid gap-2 d-md-flex">
+                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">Get Started</a>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-lg">Sign In</a>
+                </div>
+            {% else %}
+                <div class="d-grid gap-2 d-md-flex">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">Go to Dashboard</a>
+                </div>
+            {% endif %}
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-lg border-0 rounded-3 overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" alt="People working together" class="card-img-top">
+                <div class="card-body bg-dark p-4">
+                    <h3 class="card-title h4">Why Choose MentorHub?</h3>
+                    <div class="row mt-4">
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <div class="rounded-circle bg-primary bg-opacity-10 me-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+                                    <i class="fas fa-calendar-alt text-primary"></i>
+                                </div>
+                                <div>
+                                    <h4 class="h6 mb-1">Easy Scheduling</h4>
+                                    <p class="mb-0 small text-secondary">Book sessions and manage your calendar all in one place.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <div class="rounded-circle bg-success bg-opacity-10 me-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+                                    <i class="fas fa-video text-success"></i>
+                                </div>
+                                <div>
+                                    <h4 class="h6 mb-1">Video Sessions</h4>
+                                    <p class="mb-0 small text-secondary">Integrated Google Meet links for seamless connections.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <div class="rounded-circle bg-info bg-opacity-10 me-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+                                    <i class="fas fa-chart-line text-info"></i>
+                                </div>
+                                <div>
+                                    <h4 class="h6 mb-1">Progress Tracking</h4>
+                                    <p class="mb-0 small text-secondary">Visualize your growth and mentoring history.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <div class="rounded-circle bg-warning bg-opacity-10 me-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+                                    <i class="fas fa-star text-warning"></i>
+                                </div>
+                                <div>
+                                    <h4 class="h6 mb-1">Feedback System</h4>
+                                    <p class="mb-0 small text-secondary">Give and receive constructive feedback after sessions.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bg-dark bg-opacity-50 py-5 mt-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="h2 mb-3">How It Works</h2>
+            <p class="lead">Join MentorHub in just a few simple steps</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="card h-100 border-0 text-center">
+                    <div class="card-body">
+                        <div class="rounded-circle bg-primary bg-opacity-10 mb-3 mx-auto d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                            <span class="h4 mb-0 text-primary">1</span>
+                        </div>
+                        <h3 class="h5 card-title">Sign Up</h3>
+                        <p class="card-text small">Create an account as a mentor or mentee based on your needs.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-0 text-center">
+                    <div class="card-body">
+                        <div class="rounded-circle bg-primary bg-opacity-10 mb-3 mx-auto d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                            <span class="h4 mb-0 text-primary">2</span>
+                        </div>
+                        <h3 class="h5 card-title">Complete Profile</h3>
+                        <p class="card-text small">Add your details and expertise to help with matching.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-0 text-center">
+                    <div class="card-body">
+                        <div class="rounded-circle bg-primary bg-opacity-10 mb-3 mx-auto d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                            <span class="h4 mb-0 text-primary">3</span>
+                        </div>
+                        <h3 class="h5 card-title">Book Sessions</h3>
+                        <p class="card-text small">Find available time slots and schedule mentoring sessions.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-0 text-center">
+                    <div class="card-body">
+                        <div class="rounded-circle bg-primary bg-opacity-10 mb-3 mx-auto d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                            <span class="h4 mb-0 text-primary">4</span>
+                        </div>
+                        <h3 class="h5 card-title">Grow Together</h3>
+                        <p class="card-text small">Meet via Google Meet, share knowledge, and provide feedback.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h2 class="h2 mb-3">Join Our Community Today</h2>
+        <p class="lead">Choose your role and get started on your mentoring journey</p>
+    </div>
+    
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card h-100 border-0">
+                <div class="card-body text-center p-5">
+                    <div class="rounded-circle bg-primary bg-opacity-10 mb-4 mx-auto d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                        <i class="fas fa-user-tie fa-3x text-primary"></i>
+                    </div>
+                    <h3 class="h4 card-title mb-3">Become a Mentor</h3>
+                    <p class="card-text mb-4">Share your knowledge and expertise with others. Help guide the next generation in your field.</p>
+                    {% if not current_user.is_authenticated %}
+                        <a href="{{ url_for('register') }}" class="btn btn-outline-primary">Sign Up as Mentor</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 border-0">
+                <div class="card-body text-center p-5">
+                    <div class="rounded-circle bg-success bg-opacity-10 mb-4 mx-auto d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                        <i class="fas fa-user-graduate fa-3x text-success"></i>
+                    </div>
+                    <h3 class="h4 card-title mb-3">Find a Mentor</h3>
+                    <p class="card-text mb-4">Accelerate your learning and development by connecting with experienced mentors.</p>
+                    {% if not current_user.is_authenticated %}
+                        <a href="{{ url_for('register') }}" class="btn btn-outline-success">Sign Up as Mentee</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

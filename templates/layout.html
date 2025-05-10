@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} | MentorHub</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome with local fallback -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+          onerror="this.onerror=null;this.href='{{ url_for('static', filename='css/fontawesome.min.css') }}';">
+
+    <!-- FullCalendar (for calendar page) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css">
+
+    <!-- Chart.js (for analytics) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
+    <!-- Inline Font Awesome fallback for Docker environments -->
+    <style>
+        /* Only apply if Font Awesome failed to load */
+        .fa-fallback {
+            font-family: Arial, sans-serif;
+            display: inline-block;
+            width: 1em;
+            text-align: center;
+        }
+
+        /* Basic icon replacements */
+        .icon-fallback-calendar:before { content: "📅"; }
+        .icon-fallback-user:before { content: "👤"; }
+        .icon-fallback-clock:before { content: "⏰"; }
+        .icon-fallback-check:before { content: "✓"; }
+        .icon-fallback-times:before { content: "✗"; }
+        .icon-fallback-star:before { content: "★"; }
+        .icon-fallback-comment:before { content: "💬"; }
+        .icon-fallback-search:before { content: "🔍"; }
+        .icon-fallback-edit:before { content: "✎"; }
+    </style>
+
+    <!-- Font Awesome detection script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if Font Awesome is loaded
+            var isFontAwesomeLoaded = (function() {
+                var span = document.createElement('span');
+                span.className = 'fa';
+                span.style.display = 'none';
+                document.body.insertBefore(span, document.body.firstChild);
+                var result = window.getComputedStyle(span, null).getPropertyValue('font-family') === 'FontAwesome';
+                document.body.removeChild(span);
+                return result;
+            })();
+
+            if (!isFontAwesomeLoaded) {
+                console.warn('Font Awesome not loaded, using fallback icons');
+
+                // Replace Font Awesome icons with fallback
+                document.querySelectorAll('[class*="fa-"]').forEach(function(el) {
+                    // Add fallback class
+                    el.classList.add('fa-fallback');
+
+                    // Add specific fallback icon based on original icon
+                    if (el.classList.contains('fa-calendar') || el.classList.contains('fa-calendar-alt')) {
+                        el.classList.add('icon-fallback-calendar');
+                    } else if (el.classList.contains('fa-user')) {
+                        el.classList.add('icon-fallback-user');
+                    } else if (el.classList.contains('fa-clock')) {
+                        el.classList.add('icon-fallback-clock');
+                    } else if (el.classList.contains('fa-check')) {
+                        el.classList.add('icon-fallback-check');
+                    } else if (el.classList.contains('fa-times')) {
+                        el.classList.add('icon-fallback-times');
+                    } else if (el.classList.contains('fa-star')) {
+                        el.classList.add('icon-fallback-star');
+                    } else if (el.classList.contains('fa-comment')) {
+                        el.classList.add('icon-fallback-comment');
+                    } else if (el.classList.contains('fa-search')) {
+                        el.classList.add('icon-fallback-search');
+                    } else if (el.classList.contains('fa-edit')) {
+                        el.classList.add('icon-fallback-edit');
+                    }
+                });
+
+                // Try to load Font Awesome from a different CDN
+                var link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'https://use.fontawesome.com/releases/v5.15.4/css/all.css';
+                document.head.appendChild(link);
+            }
+        });
+    </script>
+</head>
+<body class="d-flex flex-column min-vh-100" {% if current_user.is_authenticated %}data-role="{{ current_user.role }}"{% endif %}>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light shadow-sm" style="background-color: #F8F9FA;">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <i class="fas fa-user-friends text-primary me-2"></i>
+                <span style="color: #4B89DC; font-weight: 600;">MentorHub</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == url_for('dashboard') %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                                <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == url_for('sessions') %}active{% endif %}" href="{{ url_for('sessions') }}">
+                                <i class="fas fa-calendar-check me-1"></i> Sessions
+                            </a>
+                        </li>
+                        {% if current_user.role == 'mentee' %}
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.path == url_for('mentors') %}active{% endif %}" href="{{ url_for('mentors') }}">
+                                    <i class="fas fa-user-tie me-1"></i> Find Mentors
+                                </a>
+                            </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == url_for('calendar') %}active{% endif %}" href="{{ url_for('calendar') }}">
+                                <i class="fas fa-calendar-alt me-1"></i> Calendar
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == url_for('analytics') %}active{% endif %}" href="{{ url_for('analytics') }}">
+                                <i class="fas fa-chart-line me-1"></i> Analytics
+                            </a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle me-1"></i> {{ current_user.username }}
+                                <span class="badge bg-primary ms-1">{{ current_user.role|capitalize }}</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('profile') }}">
+                                        <i class="fas fa-id-card me-1"></i> Profile
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('logout') }}">
+                                        <i class="fas fa-sign-out-alt me-1"></i> Logout
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == url_for('login') %}active{% endif %}" href="{{ url_for('login') }}">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == url_for('register') %}active{% endif %}" href="{{ url_for('register') }}">Register</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-grow-1 py-4">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer py-3" style="background-color: #F8F9FA; border-top: 1px solid #E9ECEF;">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted">© 2025 MentorHub. All rights reserved.</span>
+                <ul class="list-inline mb-0">
+                    <li class="list-inline-item"><a href="#" class="text-decoration-none" style="color: #6C757D;">Terms</a></li>
+                    <li class="list-inline-item"><a href="#" class="text-decoration-none" style="color: #6C757D;">Privacy</a></li>
+                    <li class="list-inline-item"><a href="#" class="text-decoration-none" style="color: #6C757D;">Contact</a></li>
+                </ul>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- FullCalendar (for calendar page) -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+
+    <!-- Common JavaScript -->
+    <script>
+        // Check if Bootstrap is loaded
+        function isBootstrapLoaded() {
+            return typeof bootstrap !== 'undefined';
+        }
+
+        // Retry loading Bootstrap if it's not available
+        function ensureBootstrapLoaded(callback, maxRetries = 5, retryInterval = 500) {
+            let retries = 0;
+
+            function checkAndRetry() {
+                if (isBootstrapLoaded()) {
+                    console.log('Bootstrap loaded successfully');
+                    callback();
+                } else {
+                    retries++;
+                    console.warn('Bootstrap not loaded yet, retry', retries, 'of', maxRetries);
+
+                    if (retries < maxRetries) {
+                        setTimeout(checkAndRetry, retryInterval);
+                    } else {
+                        console.error('Failed to load Bootstrap after', maxRetries, 'retries');
+                        // Try to reload the script as a last resort
+                        const script = document.createElement('script');
+                        script.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js';
+                        script.onload = callback;
+                        document.head.appendChild(script);
+                    }
+                }
+            }
+
+            checkAndRetry();
+        }
+
+        // Initialize Bootstrap components
+        function initBootstrapComponents() {
+            try {
+                // Initialize tooltips
+                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+
+                // Initialize popovers
+                var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+                var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+                    return new bootstrap.Popover(popoverTriggerEl);
+                });
+
+                // Auto-dismiss alerts after 5 seconds
+                setTimeout(function() {
+                    var alerts = document.querySelectorAll('.alert');
+                    alerts.forEach(function(alert) {
+                        try {
+                            var bsAlert = new bootstrap.Alert(alert);
+                            bsAlert.close();
+                        } catch (error) {
+                            console.error('Error closing alert:', error);
+                            // Fallback: remove the alert manually
+                            alert.style.display = 'none';
+                        }
+                    });
+                }, 5000);
+
+                // Set a global flag that Bootstrap is ready
+                window.bootstrapReady = true;
+
+                // Dispatch a custom event that Bootstrap is ready
+                document.dispatchEvent(new CustomEvent('bootstrap:ready'));
+
+                console.log('Bootstrap components initialized');
+            } catch (error) {
+                console.error('Error initializing Bootstrap components:', error);
+            }
+        }
+
+        // When the DOM is loaded, ensure Bootstrap is loaded and initialize components
+        document.addEventListener('DOMContentLoaded', function() {
+            ensureBootstrapLoaded(initBootstrapComponents);
+        });
+    </script>
+
+    <!-- Page-specific JavaScript -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

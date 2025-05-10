@@ -1,0 +1,616 @@
+{% extends 'layout.html' %}
+
+{% block styles %}
+<style>
+    /* Analytics color scheme */
+    .analytics-card {
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s, box-shadow 0.3s;
+        border: none;
+        overflow: hidden;
+    }
+
+    .analytics-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    .analytics-card .card-header {
+        border-bottom: none;
+        padding: 1.25rem 1.5rem;
+    }
+
+    .analytics-card .card-body {
+        padding: 1.5rem;
+    }
+
+    .analytics-card .card-title {
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+    }
+
+    /* Color indicators for different chart types */
+    .analytics-sessions {
+        border-top: 4px solid var(--bs-primary);
+    }
+
+    .analytics-status {
+        border-top: 4px solid var(--bs-info);
+    }
+
+    .analytics-availability {
+        border-top: 4px solid var(--bs-success);
+    }
+
+    .analytics-mentors {
+        border-top: 4px solid var(--bs-warning);
+    }
+
+    .analytics-feedback {
+        border-top: 4px solid var(--bs-danger);
+    }
+
+    .analytics-tips {
+        border-top: 4px solid var(--bs-secondary);
+    }
+
+    /* Indicator badges */
+    .indicator-badge {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+
+    .indicator-primary {
+        background-color: var(--bs-primary);
+    }
+
+    .indicator-info {
+        background-color: var(--bs-info);
+    }
+
+    .indicator-success {
+        background-color: var(--bs-success);
+    }
+
+    .indicator-warning {
+        background-color: var(--bs-warning);
+    }
+
+    .indicator-danger {
+        background-color: var(--bs-danger);
+    }
+
+    /* No data message styling */
+    .no-data-message {
+        padding: 2rem;
+        text-align: center;
+        color: var(--bs-secondary);
+    }
+
+    .no-data-message i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">
+    <i class="fas fa-chart-line me-2 text-primary"></i>
+    Analytics Dashboard
+</h1>
+
+<div class="alert alert-info mb-4">
+    <div class="d-flex align-items-center">
+        <i class="fas fa-info-circle me-3 fa-lg"></i>
+        <div>
+            <strong>Analytics Guide:</strong>
+            <span class="ms-2">Use color indicators to identify different types of analytics data.</span>
+            <div class="mt-2 d-flex flex-wrap gap-3">
+                <span><span class="indicator-badge indicator-primary"></span>Sessions</span>
+                <span><span class="indicator-badge indicator-info"></span>Status</span>
+                <span><span class="indicator-badge indicator-success"></span>Availability</span>
+                <span><span class="indicator-badge indicator-warning"></span>Mentors</span>
+                <span><span class="indicator-badge indicator-danger"></span>Feedback</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-md-8">
+        <div class="card analytics-card analytics-sessions">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">
+                    <span class="indicator-badge indicator-primary"></span>
+                    Sessions Per Week
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="sessionsChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card analytics-card analytics-feedback">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">
+                    <span class="indicator-badge indicator-danger"></span>
+                    Feedback Overview
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if current_user.role == 'mentor' %}
+                    <div class="d-flex justify-content-center align-items-center mb-4" style="height: 120px;">
+                        <div class="text-center">
+                            <div class="display-1 text-danger mb-0">{{ "%.1f"|format(feedback_data.average) }}</div>
+                            <div class="text-muted">Average Rating</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-center mb-3">
+                        {% for i in range(5) %}
+                            <i class="fas fa-star fa-2x {% if i < feedback_data.average|int %}text-warning{% elif i < feedback_data.average %}text-warning-50{% else %}text-muted{% endif %} mx-1"></i>
+                        {% endfor %}
+                    </div>
+
+                    <div class="text-center text-secondary">
+                        Based on {{ feedback_data.count }} reviews
+                    </div>
+                {% else %}
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="border rounded p-3 text-center h-100 bg-light bg-opacity-50">
+                                <div class="h5">Feedback Received</div>
+                                <div class="display-6 text-danger mb-2">{{ "%.1f"|format(feedback_data.received.average) }}</div>
+                                <div class="mb-2">
+                                    {% for i in range(5) %}
+                                        <i class="fas fa-star {% if i < feedback_data.received.average|int %}text-warning{% elif i < feedback_data.received.average %}text-warning-50{% else %}text-muted{% endif %}"></i>
+                                    {% endfor %}
+                                </div>
+                                <div class="text-secondary small">
+                                    From {{ feedback_data.received.count }} mentors
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-3 text-center h-100 bg-light bg-opacity-50">
+                                <div class="h5">Feedback Given</div>
+                                <div class="display-6 text-danger mb-2">{{ "%.1f"|format(feedback_data.given.average) }}</div>
+                                <div class="mb-2">
+                                    {% for i in range(5) %}
+                                        <i class="fas fa-star {% if i < feedback_data.given.average|int %}text-warning{% elif i < feedback_data.given.average %}text-warning-50{% else %}text-muted{% endif %}"></i>
+                                    {% endfor %}
+                                </div>
+                                <div class="text-secondary small">
+                                    To {{ feedback_data.given.count }} mentors
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    {% if current_user.role == 'mentor' %}
+        <div class="col-md-6">
+            <div class="card analytics-card analytics-availability">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">
+                        <span class="indicator-badge indicator-success"></span>
+                        Availability Analysis
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="availabilityChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card analytics-card analytics-status">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">
+                        <span class="indicator-badge indicator-info"></span>
+                        Session Status Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="sessionStatusChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="col-md-6">
+            <div class="card analytics-card analytics-status">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">
+                        <span class="indicator-badge indicator-info"></span>
+                        Session Status Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="sessionStatusChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card analytics-card analytics-mentors">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">
+                        <span class="indicator-badge indicator-warning"></span>
+                        Mentor Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="mentorDistributionChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<div class="card analytics-card analytics-tips">
+    <div class="card-header bg-white">
+        <h5 class="card-title mb-0">
+            <span class="indicator-badge indicator-secondary"></span>
+            Tips to Improve Your Experience
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-4">
+            {% if current_user.role == 'mentor' %}
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="rounded-circle bg-primary bg-opacity-10 me-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+                                    <i class="fas fa-calendar-alt text-primary"></i>
+                                </div>
+                                <h6 class="mb-0 text-primary">Set Regular Availability</h6>
+                            </div>
+                            <p class="mb-3 small text-secondary">Having consistent slots each week helps mentees plan ahead and increases your booking rate.</p>
+                        </div>
+                        <div class="card-footer bg-primary bg-opacity-10 border-0">
+                            <a href="{{ url_for('profile') }}" class="btn btn-sm btn-outline-primary w-100">
+                                <i class="fas fa-plus-circle me-1"></i> Manage Availability
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="rounded-circle bg-success bg-opacity-10 me-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+                                    <i class="fas fa-user-edit text-success"></i>
+                                </div>
+                                <h6 class="mb-0 text-success">Complete Your Profile</h6>
+                            </div>
+                            <p class="mb-3 small text-secondary">Detailed expertise and bio information helps you attract more mentees to your sessions.</p>
+                        </div>
+                        <div class="card-footer bg-success bg-opacity-10 border-0">
+                            <a href="{{ url_for('profile') }}" class="btn btn-sm btn-outline-success w-100">
+                                <i class="fas fa-edit me-1"></i> Update Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="rounded-circle bg-danger bg-opacity-10 me-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+                                    <i class="fas fa-comments text-danger"></i>
+                                </div>
+                                <h6 class="mb-0 text-danger">Request Feedback</h6>
+                            </div>
+                            <p class="mb-3 small text-secondary">Encourage mentees to provide detailed feedback to help you improve your mentoring skills.</p>
+                        </div>
+                        <div class="card-footer bg-danger bg-opacity-10 border-0">
+                            <a href="{{ url_for('sessions') }}?status=completed" class="btn btn-sm btn-outline-danger w-100">
+                                <i class="fas fa-star me-1"></i> View Completed Sessions
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="rounded-circle bg-warning bg-opacity-10 me-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+                                    <i class="fas fa-search text-warning"></i>
+                                </div>
+                                <h6 class="mb-0 text-warning">Explore Mentors</h6>
+                            </div>
+                            <p class="mb-3 small text-secondary">Book sessions with different mentors to gain diverse perspectives and expertise.</p>
+                        </div>
+                        <div class="card-footer bg-warning bg-opacity-10 border-0">
+                            <a href="{{ url_for('mentors') }}" class="btn btn-sm btn-outline-warning w-100">
+                                <i class="fas fa-users me-1"></i> Browse Mentors
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="rounded-circle bg-primary bg-opacity-10 me-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+                                    <i class="fas fa-calendar-alt text-primary"></i>
+                                </div>
+                                <h6 class="mb-0 text-primary">Plan Ahead</h6>
+                            </div>
+                            <p class="mb-3 small text-secondary">Book sessions in advance to secure your preferred mentors and time slots.</p>
+                        </div>
+                        <div class="card-footer bg-primary bg-opacity-10 border-0">
+                            <a href="{{ url_for('calendar') }}" class="btn btn-sm btn-outline-primary w-100">
+                                <i class="fas fa-calendar-plus me-1"></i> View Calendar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="rounded-circle bg-danger bg-opacity-10 me-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+                                    <i class="fas fa-star text-danger"></i>
+                                </div>
+                                <h6 class="mb-0 text-danger">Provide Feedback</h6>
+                            </div>
+                            <p class="mb-3 small text-secondary">Your ratings and detailed comments help mentors improve their future sessions.</p>
+                        </div>
+                        <div class="card-footer bg-danger bg-opacity-10 border-0">
+                            <a href="{{ url_for('sessions') }}?status=completed" class="btn btn-sm btn-outline-danger w-100">
+                                <i class="fas fa-comment-dots me-1"></i> Rate Sessions
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Helper function to check if data is empty
+    function isEmptyData(data) {
+        if (!data) return true;
+        if (Array.isArray(data)) {
+            return data.length === 0 || data.every(item => item.count === 0);
+        }
+        if (typeof data === 'object') {
+            return !data.data || data.data.length === 0 || data.data.every(val => val === 0);
+        }
+        return true;
+    }
+
+    // Helper function to display "No data available" message
+    function displayNoDataMessage(chartElement, message = "No data available") {
+        const container = chartElement.parentElement;
+        const canvas = chartElement;
+
+        // Hide the canvas
+        canvas.style.display = 'none';
+
+        // Create a message element if it doesn't exist
+        if (!container.querySelector('.no-data-message')) {
+            const messageEl = document.createElement('div');
+            messageEl.className = 'no-data-message text-center text-muted py-5';
+            messageEl.innerHTML = `
+                <i class="fas fa-chart-bar fa-3x mb-3 text-secondary opacity-50"></i>
+                <p>${message}</p>
+                <p class="small">Complete some sessions to see data here</p>
+            `;
+            container.appendChild(messageEl);
+        }
+    }
+
+    // Sessions Per Week Chart
+    const sessionsCtx = document.getElementById('sessionsChart');
+    const sessionsData = {{ sessions_data|tojson }};
+
+    if (isEmptyData(sessionsData)) {
+        displayNoDataMessage(sessionsCtx, "No completed sessions found");
+    } else {
+        new Chart(sessionsCtx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: sessionsData.map(item => item.week),
+                datasets: [{
+                    label: 'Completed Sessions',
+                    data: sessionsData.map(item => item.count),
+                    fill: true,
+                    backgroundColor: 'rgba(var(--bs-primary-rgb), 0.2)',
+                    borderColor: 'var(--bs-primary)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    pointBackgroundColor: 'var(--bs-primary)',
+                    pointBorderColor: '#fff',
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Session Status Distribution Chart
+    const statusCtx = document.getElementById('sessionStatusChart');
+    const statusData = {{ status_data|tojson }};
+
+    if (isEmptyData(statusData)) {
+        displayNoDataMessage(statusCtx, "No session data available");
+    } else {
+        new Chart(statusCtx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: statusData.labels,
+                datasets: [{
+                    data: statusData.data,
+                    backgroundColor: [
+                        'rgba(var(--bs-info-rgb), 0.8)',
+                        'rgba(var(--bs-success-rgb), 0.8)',
+                        'rgba(var(--bs-warning-rgb), 0.8)',
+                        'rgba(var(--bs-danger-rgb), 0.8)'
+                    ],
+                    borderColor: [
+                        'var(--bs-info)',
+                        'var(--bs-success)',
+                        'var(--bs-warning)',
+                        'var(--bs-danger)'
+                    ],
+                    hoverBackgroundColor: [
+                        'var(--bs-info)',
+                        'var(--bs-success)',
+                        'var(--bs-warning)',
+                        'var(--bs-danger)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // Additional charts based on role
+    if (document.body.dataset.role === 'mentor') {
+        // Availability Analysis Chart
+        const availabilityCtx = document.getElementById('availabilityChart');
+        const availabilityData = {{ availability_data|tojson }};
+
+        if (isEmptyData(availabilityData)) {
+            displayNoDataMessage(availabilityCtx, "No availability data found");
+        } else {
+            new Chart(availabilityCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: availabilityData.labels,
+                    datasets: [{
+                        label: 'Available Hours',
+                        data: availabilityData.data,
+                        backgroundColor: [
+                            'rgba(var(--bs-success-rgb), 0.7)',
+                            'rgba(var(--bs-success-rgb), 0.6)',
+                            'rgba(var(--bs-success-rgb), 0.5)',
+                            'rgba(var(--bs-success-rgb), 0.7)',
+                            'rgba(var(--bs-success-rgb), 0.6)',
+                            'rgba(var(--bs-success-rgb), 0.5)',
+                            'rgba(var(--bs-success-rgb), 0.4)'
+                        ],
+                        borderColor: 'var(--bs-success)',
+                        borderWidth: 1,
+                        hoverBackgroundColor: 'rgba(var(--bs-success-rgb), 0.9)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Hours'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    } else {
+        // Mentor Distribution Chart for mentees
+        const mentorDistCtx = document.getElementById('mentorDistributionChart');
+        const mentorDistData = {{ mentor_distribution|tojson }};
+
+        if (isEmptyData(mentorDistData)) {
+            displayNoDataMessage(mentorDistCtx, "No mentor data available");
+        } else {
+            // Generate colors dynamically based on number of mentors
+            const numMentors = mentorDistData.labels.length;
+            const backgroundColors = [];
+            const borderColors = [];
+
+            // Define base colors
+            const baseColors = [
+                'rgba(var(--bs-primary-rgb), 0.7)',
+                'rgba(var(--bs-success-rgb), 0.7)',
+                'rgba(var(--bs-info-rgb), 0.7)',
+                'rgba(var(--bs-secondary-rgb), 0.7)',
+                'rgba(var(--bs-warning-rgb), 0.7)',
+                'rgba(var(--bs-danger-rgb), 0.7)'
+            ];
+
+            const baseBorderColors = [
+                'var(--bs-primary)',
+                'var(--bs-success)',
+                'var(--bs-info)',
+                'var(--bs-secondary)',
+                'var(--bs-warning)',
+                'var(--bs-danger)'
+            ];
+
+            // Assign colors
+            for (let i = 0; i < numMentors; i++) {
+                backgroundColors.push(baseColors[i % baseColors.length]);
+                borderColors.push(baseBorderColors[i % baseBorderColors.length]);
+            }
+
+            new Chart(mentorDistCtx.getContext('2d'), {
+                type: 'pie',
+                data: {
+                    labels: mentorDistData.labels,
+                    datasets: [{
+                        data: mentorDistData.data,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+    }
+});
+</script>
+{% endblock %}

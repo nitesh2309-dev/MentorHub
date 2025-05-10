@@ -1,0 +1,359 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+{% if modal %}
+    <!-- Content for modal view -->
+    <div class="modal-content-inner">
+{% else %}
+    <!-- Regular page view -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+{% endif %}
+
+<div class="session-detail">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">Session with {{ other_user.username }}</h3>
+        <span class="badge {% if session.status == 'pending' %}bg-warning{% elif session.status == 'approved' %}bg-success{% elif session.status == 'completed' %}bg-info{% else %}bg-danger{% endif %}">
+            {{ session.status|capitalize }}
+        </span>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-8">
+            <div class="card mb-3 {% if session.status == 'pending' %}session-pending{% elif session.status == 'approved' %}session-approved{% elif session.status == 'completed' %}session-completed{% else %}session-rejected{% endif %}">
+                <div class="card-body">
+                    <h4 class="card-title h5">Details</h4>
+                    <table class="table">
+                        <tr>
+                            <th style="width: 150px;">Date</th>
+                            <td>{{ session.session_date.strftime('%A, %B %d, %Y') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Time</th>
+                            <td>{{ session.start_time.strftime('%I:%M %p') }} - {{ session.end_time.strftime('%I:%M %p') }}</td>
+                        </tr>
+                        <tr>
+                            <th>{% if current_user.role == 'mentor' %}Mentee{% else %}Mentor{% endif %}</th>
+                            <td>{{ other_user.username }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status</th>
+                            <td>{{ session.status|capitalize }}</td>
+                        </tr>
+                        {% if session.meeting_url %}
+                            <tr>
+                                <th>Meeting Link</th>
+                                <td>
+                                    <a href="{{ session.meeting_url }}" target="_blank" class="btn btn-primary">
+                                        <i class="fas fa-video me-1"></i> Join Google Meet
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endif %}
+
+                        {% if session.status == 'approved' and not session.meeting_url %}
+                            <tr>
+                                <th>Meeting Link</th>
+                                <td>
+                                    <form method="POST" action="{{ url_for('update_session', session_id=session.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="action" value="generate_meeting">
+                                        <button type="submit" class="btn btn-outline-primary">
+                                            <i class="fas fa-video-plus me-1"></i> Generate Google Meet Link
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endif %}
+                        {% if session.notes %}
+                            <tr>
+                                <th>Notes</th>
+                                <td>{{ session.notes }}</td>
+                            </tr>
+                        {% endif %}
+                    </table>
+
+                    {% if session.status == 'pending' and current_user.role == 'mentor' %}
+                        <div class="d-flex mt-4">
+                            <form method="POST" action="{{ url_for('update_session', session_id=session.id) }}" class="me-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="action" value="approve">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check me-1"></i> Approve Session
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('update_session', session_id=session.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="action" value="reject">
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fas fa-times me-1"></i> Reject Session
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
+
+                    {% if session.status == 'approved' and current_user.role == 'mentor' %}
+                        <div class="mt-4">
+                            <form method="POST" action="{{ url_for('update_session', session_id=session.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="action" value="complete">
+                                <button type="submit" class="btn btn-info">
+                                    <i class="fas fa-check-circle me-1"></i> Mark as Completed
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if feedback %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="card-title h5 mb-0">Feedback</h4>
+                            {% if not feedback.is_anonymous %}
+                                <span class="badge bg-info">From: {{ feedback.giver.username }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Anonymous</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Overall Rating -->
+                        <div class="mb-3">
+                            <h5 class="h6 mb-2">Overall Rating</h5>
+                            <div class="d-flex align-items-center">
+                                <div class="me-2">
+                                    {% for i in range(5) %}
+                                        <i class="fas fa-star {% if i < feedback.rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                                    {% endfor %}
+                                </div>
+                                <span class="badge bg-primary">{{ feedback.rating }}/5</span>
+                            </div>
+                        </div>
+
+                        <!-- Detailed Ratings -->
+                        {% if feedback.knowledge_rating or feedback.communication_rating or feedback.helpfulness_rating %}
+                            <div class="row mb-3">
+                                {% if feedback.knowledge_rating %}
+                                    <div class="col-md-4">
+                                        <h6 class="small text-muted mb-1">Knowledge</h6>
+                                        <div>
+                                            {% for i in range(5) %}
+                                                <i class="fas fa-star {% if i < feedback.knowledge_rating %}text-warning{% else %}text-muted{% endif %} small"></i>
+                                            {% endfor %}
+                                            <span class="small ms-1">({{ feedback.knowledge_rating }}/5)</span>
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                                {% if feedback.communication_rating %}
+                                    <div class="col-md-4">
+                                        <h6 class="small text-muted mb-1">Communication</h6>
+                                        <div>
+                                            {% for i in range(5) %}
+                                                <i class="fas fa-star {% if i < feedback.communication_rating %}text-warning{% else %}text-muted{% endif %} small"></i>
+                                            {% endfor %}
+                                            <span class="small ms-1">({{ feedback.communication_rating }}/5)</span>
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                                {% if feedback.helpfulness_rating %}
+                                    <div class="col-md-4">
+                                        <h6 class="small text-muted mb-1">Helpfulness</h6>
+                                        <div>
+                                            {% for i in range(5) %}
+                                                <i class="fas fa-star {% if i < feedback.helpfulness_rating %}text-warning{% else %}text-muted{% endif %} small"></i>
+                                            {% endfor %}
+                                            <span class="small ms-1">({{ feedback.helpfulness_rating }}/5)</span>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        <!-- Comments -->
+                        {% if feedback.comments %}
+                            <div class="mb-3">
+                                <h5 class="h6 mb-2">Comments</h5>
+                                <p class="mb-0 bg-light p-2 rounded">{{ feedback.comments }}</p>
+                            </div>
+                        {% endif %}
+
+                        <!-- Strengths and Areas for Improvement -->
+                        <div class="row">
+                            {% if feedback.strengths %}
+                                <div class="col-md-6 mb-3">
+                                    <h5 class="h6 mb-2">Strengths</h5>
+                                    <p class="mb-0 bg-light p-2 rounded text-success">{{ feedback.strengths }}</p>
+                                </div>
+                            {% endif %}
+
+                            {% if feedback.areas_for_improvement %}
+                                <div class="col-md-6 mb-3">
+                                    <h5 class="h6 mb-2">Areas for Improvement</h5>
+                                    <p class="mb-0 bg-light p-2 rounded text-primary">{{ feedback.areas_for_improvement }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% elif session.status == 'completed' and feedback_form %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h4 class="card-title h5">Provide Feedback</h4>
+                        <form method="POST" action="{{ url_for('submit_feedback') }}">
+                            {{ feedback_form.hidden_tag() }}
+
+                            <!-- Overall Rating -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Overall Rating</label>
+                                <div class="rating mb-2">
+                                    {% for i in range(5, 0, -1) %}
+                                        <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}" {% if feedback_form.rating.data == i %}checked{% endif %} required>
+                                        <label for="star{{ i }}" title="{{ i }} stars"><i class="fas fa-star"></i></label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Detailed Ratings -->
+                            <div class="row mb-4">
+                                <div class="col-md-4">
+                                    <label class="form-label">Knowledge</label>
+                                    <div class="rating-small">
+                                        {% for i in range(5, 0, -1) %}
+                                            <input type="radio" id="knowledge{{ i }}" name="knowledge_rating" value="{{ i }}" {% if feedback_form.knowledge_rating.data == i %}checked{% endif %}>
+                                            <label for="knowledge{{ i }}" title="{{ i }} stars"><i class="fas fa-star"></i></label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Communication</label>
+                                    <div class="rating-small">
+                                        {% for i in range(5, 0, -1) %}
+                                            <input type="radio" id="communication{{ i }}" name="communication_rating" value="{{ i }}" {% if feedback_form.communication_rating.data == i %}checked{% endif %}>
+                                            <label for="communication{{ i }}" title="{{ i }} stars"><i class="fas fa-star"></i></label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Helpfulness</label>
+                                    <div class="rating-small">
+                                        {% for i in range(5, 0, -1) %}
+                                            <input type="radio" id="helpfulness{{ i }}" name="helpfulness_rating" value="{{ i }}" {% if feedback_form.helpfulness_rating.data == i %}checked{% endif %}>
+                                            <label for="helpfulness{{ i }}" title="{{ i }} stars"><i class="fas fa-star"></i></label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Comments -->
+                            <div class="mb-3">
+                                {{ feedback_form.comments.label(class="form-label") }}
+                                {{ feedback_form.comments(class="form-control", rows=2, placeholder="Share your general thoughts about this session...") }}
+                            </div>
+
+                            <!-- Strengths and Areas for Improvement -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    {{ feedback_form.strengths.label(class="form-label") }}
+                                    {{ feedback_form.strengths(class="form-control", rows=2, placeholder="What went well in this session?") }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ feedback_form.areas_for_improvement.label(class="form-label") }}
+                                    {{ feedback_form.areas_for_improvement(class="form-control", rows=2, placeholder="What could be improved for future sessions?") }}
+                                </div>
+                            </div>
+
+                            <!-- Anonymous Option -->
+                            <div class="mb-3 form-check">
+                                {{ feedback_form.is_anonymous(class="form-check-input") }}
+                                {{ feedback_form.is_anonymous.label(class="form-check-label") }}
+                                <small class="form-text text-muted d-block">Your feedback will still be counted, but your name won't be shown.</small>
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">Submit Feedback</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-body text-center">
+                    <div class="rounded-circle bg-primary bg-opacity-10 mb-3 mx-auto d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                        <i class="fas {% if other_user.role == 'mentor' %}fa-user-tie{% else %}fa-user-graduate{% endif %} fa-2x text-primary"></i>
+                    </div>
+                    <h5 class="card-title">{{ other_user.username }}</h5>
+                    <p class="text-primary mb-2">
+                        <i class="fas {% if other_user.role == 'mentor' %}fa-chalkboard-teacher{% else %}fa-user{% endif %} me-1"></i>
+                        {{ other_user.role|capitalize }}
+                    </p>
+                    {% if other_user.expertise %}
+                        <p class="text-success small mb-2">
+                            <i class="fas fa-tag me-1"></i> {{ other_user.expertise }}
+                        </p>
+                    {% endif %}
+                    {% if other_user.bio %}
+                        <div class="mb-3">
+                            <p class="card-text small">{{ other_user.bio }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if other_sessions %}
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title h5 mb-3">Other Sessions</h4>
+                        <div class="list-group list-group-flush">
+                            {% for other_session in other_sessions %}
+                                {% if other_session.id != session.id %}
+                                    <a href="{{ url_for('session_detail', session_id=other_session.id) }}" class="list-group-item list-group-item-action">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ other_session.session_date.strftime('%b %d, %Y') }}</strong>
+                                                <div class="small text-muted">
+                                                    {{ other_session.start_time.strftime('%I:%M %p') }} - {{ other_session.end_time.strftime('%I:%M %p') }}
+                                                </div>
+                                            </div>
+                                            <span class="badge {% if other_session.status == 'pending' %}bg-warning{% elif other_session.status == 'approved' %}bg-success{% elif other_session.status == 'completed' %}bg-info{% else %}bg-danger{% endif %}">
+                                                {{ other_session.status }}
+                                            </span>
+                                        </div>
+                                    </a>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if modal %}
+    </div>
+{% else %}
+        </div>
+    </div>
+{% endif %}
+{% endblock content %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize rating stars
+        const ratingInputs = document.querySelectorAll('.rating input');
+        ratingInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                // Update the hidden rating field
+                document.querySelector('input[name="rating"]').value = this.value;
+            });
+        });
+    });
+</script>
+{% endblock scripts %}

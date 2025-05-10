@@ -1,0 +1,197 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>{{ title }}</h1>
+    {% if current_user.role == 'mentee' %}
+        <a href="{{ url_for('mentors') }}" class="btn btn-primary">
+            <i class="fas fa-calendar-plus me-1"></i> Book a Session
+        </a>
+    {% endif %}
+</div>
+
+<div class="row gy-4 mb-5">
+    <!-- User Stats Section -->
+    <div class="col-md-4">
+        <div class="dashboard-stat stat-primary">
+            <i class="fas fa-calendar-check stat-icon"></i>
+            <div class="stat-value">{{ stats.total_sessions }}</div>
+            <div class="stat-label">Total Sessions</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="dashboard-stat stat-success">
+            <i class="fas fa-clock stat-icon"></i>
+            <div class="stat-value">{{ stats.upcoming_sessions }}</div>
+            <div class="stat-label">Upcoming Sessions</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="dashboard-stat stat-info">
+            <i class="fas fa-star stat-icon"></i>
+            <div class="stat-value">{{ "%.1f"|format(stats.average_rating) }}</div>
+            <div class="stat-label">Average Rating</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Upcoming Sessions Section -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header d-flex justify-content-between align-items-center" style="background-color: var(--trust-light-accent)">
+                <h2 class="h5 mb-0">Upcoming Sessions</h2>
+                <a href="{{ url_for('sessions') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if upcoming_sessions %}
+                    <div class="list-group list-group-flush">
+                        {% for session in upcoming_sessions %}
+                            <a href="{{ url_for('session_detail', session_id=session.id) }}" class="list-group-item list-group-item-action p-3">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <div>
+                                        <h5 class="mb-1">
+                                            {% if current_user.role == 'mentor' %}
+                                                Session with {{ session.mentee.username }}
+                                            {% else %}
+                                                Session with {{ session.mentor.username }}
+                                            {% endif %}
+                                        </h5>
+                                        <p class="mb-1 text-muted">
+                                            <i class="far fa-calendar-alt me-1"></i> {{ session.session_date.strftime('%A, %b %d, %Y') }}
+                                        </p>
+                                        <p class="mb-0 small">
+                                            <i class="far fa-clock me-1"></i> {{ session.start_time.strftime('%I:%M %p') }} - {{ session.end_time.strftime('%I:%M %p') }}
+                                        </p>
+                                    </div>
+                                    <span class="badge bg-{{ 'warning' if session.status == 'pending' else 'success' }} align-self-start">
+                                        {{ session.status|capitalize }}
+                                    </span>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <div class="mb-3">
+                            <i class="fas fa-calendar-alt fa-3x text-muted"></i>
+                        </div>
+                        <h5>No Upcoming Sessions</h5>
+                        <p class="text-muted mb-3">You don't have any upcoming mentoring sessions scheduled.</p>
+                        {% if current_user.role == 'mentee' %}
+                            <a href="{{ url_for('mentors') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-plus me-1"></i> Book a Session
+                            </a>
+                        {% elif current_user.role == 'mentor' and current_user.availability_slots|length == 0 %}
+                            <a href="{{ url_for('profile') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-plus me-1"></i> Set Your Availability
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Activity/Chart Section -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header" style="background-color: var(--trust-light-accent)">
+                <h2 class="h5 mb-0">Recent Activity</h2>
+            </div>
+            <div class="card-body">
+                {% if stats.total_sessions > 0 %}
+                    <div class="mb-4">
+                        <canvas id="sessionsChart" height="200"></canvas>
+                    </div>
+                {% endif %}
+                
+                <div class="list-group list-group-flush">
+                    {% if activity_feed %}
+                        {% for activity in activity_feed %}
+                            <div class="list-group-item border-0 px-0">
+                                <div class="d-flex">
+                                    <div class="rounded-circle bg-{{ activity.color }} bg-opacity-10 me-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 42px; height: 42px;">
+                                        <i class="fas fa-{{ activity.icon }} text-{{ activity.color }}"></i>
+                                    </div>
+                                    <div>
+                                        <p class="mb-1">{{ activity.text }}</p>
+                                        <small class="text-muted">{{ activity.time_ago }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <div class="mb-3">
+                                <i class="fas fa-history fa-3x text-muted"></i>
+                            </div>
+                            <h5>No Recent Activity</h5>
+                            <p class="text-muted mb-0">Your activity will appear here as you use the platform.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Only initialize chart if the canvas exists
+    if (document.getElementById('sessionsChart')) {
+        // Sessions chart data
+        const sessionsData = {{ sessions_data|tojson }};
+        
+        // Initialize sessions chart
+        const sessionsChart = new Chart(
+            document.getElementById('sessionsChart').getContext('2d'),
+            {
+                type: 'line',
+                data: {
+                    labels: sessionsData.map(item => item.week),
+                    datasets: [{
+                        label: 'Sessions',
+                        data: sessionsData.map(item => item.count),
+                        fill: true,
+                        backgroundColor: 'rgba(var(--bs-primary-rgb), 0.1)',
+                        borderColor: 'var(--bs-primary)',
+                        tension: 0.4,
+                        pointBackgroundColor: 'var(--bs-primary)',
+                        pointBorderColor: '#fff',
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Sessions Per Week',
+                            color: 'var(--bs-body-color)',
+                            font: {
+                                size: 14
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            }
+        );
+    }
+});
+</script>
+{% endblock %}
