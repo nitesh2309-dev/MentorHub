@@ -34,8 +34,8 @@ A web application for scheduling and managing mentoring sessions between mentors
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/mentorschedule.git
-   cd mentorschedule
+   git clone https://github.com/nitesh2309-dev/MentorHub.git
+   cd MentorHub
    ```
 
 2. Create and activate a virtual environment:
@@ -92,14 +92,3 @@ For production deployments with PostgreSQL or MySQL:
 
 1. Set the `DATABASE_URL` in your `.env` file
 2. Run the application to create the tables
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
